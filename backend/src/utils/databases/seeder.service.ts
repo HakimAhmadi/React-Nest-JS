@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -7,7 +7,7 @@ import { SystemSettings } from './schema/entities/system-settings';
 import { INDEX_POS_ADMIN_CONN } from './constants';
 
 @Injectable()
-export class SeederService implements OnModuleInit {
+export class SeederService {
   private readonly logger = new Logger(SeederService.name);
 
   constructor(
@@ -17,9 +17,6 @@ export class SeederService implements OnModuleInit {
     private settingsRepository: Repository<SystemSettings>,
   ) {}
 
-  async onModuleInit() {
-    await this.seed();
-  }
 
   async seed() {
     this.logger.log('Starting database seeding...');

@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as Entities from './schema/entities';
 import { SUBSCRIBERS } from './schema/subscribers';
-import { SeederService } from './seeder.service';
+// import { SeederService } from './seeder.service';
 import { INDEX_POS_ADMIN_CONN } from './constants';
 
 export const dbEntities = Object.values(Entities);
@@ -33,7 +33,7 @@ export * from './constants';
     }),
     TypeOrmModule.forFeature([...dbEntities], INDEX_POS_ADMIN_CONN),
   ],
-  providers: [SeederService],
-  exports: [TypeOrmModule, SeederService],
+  providers: [],
+  exports: [TypeOrmModule,],
 })
-export class CoreBackendUtilsDatabasesModule {}
+export class CoreBackendUtilsDatabasesModule { }
