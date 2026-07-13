@@ -8,7 +8,6 @@ import {
   ArrowDownRight,
   Clock
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 
 const StatCard = ({ title, value, change, icon: Icon, trend }) => (
   <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl hover:border-primary-500/30 transition-all group">

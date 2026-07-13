@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from "./context/AuthContext";
 
@@ -29,17 +28,6 @@ import DashboardPage from "./modules/admin/dashboard/DashboardPage";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import { isAdmin } from "./utils/permissions";
 
-// Configure React Query client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
 // Redirect admin to /admin if they land on home
 const HomeRedirect = () => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -62,7 +50,7 @@ const HomeRedirect = () => {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
+    <>
       <Routes>
         {/* Main Application Layout */}
         <Route path="/" element={<MainLayout />}>
@@ -122,7 +110,7 @@ function App() {
           },
         }}
       />
-    </QueryClientProvider>
+    </>
   );
 }
 

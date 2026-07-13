@@ -45,7 +45,7 @@ make run-all
 ### Frontend (React)
 - **Modern Stack**: React 19, Vite, and TailwindCSS v4.
 - **State Management**: Zustand for light, reactive global state.
-- **Data Fetching**: TanStack Query (React Query) for robust caching.
+- **Data Fetching**: Custom API hooks (`useApiQuery`, `useApiMutation`) using Axios.
 - **UI System**: Premium, custom-built components with rich aesthetics.
 
 ## 🛠️ Commands

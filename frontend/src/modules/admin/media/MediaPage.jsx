@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useApiQuery, useApiMutation } from '@/hooks/useApi';
 import { Upload, Copy, Check, Trash2, Search, Image as ImageIcon, ExternalLink, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getApi, postApi } from '@/services/api';
@@ -7,22 +7,18 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 
 const MediaPage = () => {
-  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [copiedId, setCopiedId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const BACKEND = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3003';
 
-  const { data: media = [], isLoading } = useQuery({
-    queryKey: ['media'],
-    queryFn: async () => {
-      const res = await getApi('upload');
-      const data = res.data;
-      return Array.isArray(data) ? data : data?.data || [];
-    },
+  const { data: media = [], isLoading, refetch } = useApiQuery(['media'], async () => {
+    const res = await getApi('upload');
+    const data = res.data;
+    return Array.isArray(data) ? data : data?.data || [];
   });
 
-  const uploadMutation = useMutation({
+  const uploadMutation = useApiMutation({
     mutationFn: async (file) => {
       const formData = new FormData();
       formData.append('file', file);
@@ -32,7 +28,7 @@ const MediaPage = () => {
     },
     onSuccess: () => {
       toast.success('Media uploaded successfully!');
-      queryClient.invalidateQueries({ queryKey: ['media'] });
+      refetch();
       setIsUploading(false);
     },
     onError: (err) => {

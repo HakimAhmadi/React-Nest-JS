@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useApiQuery, useApiMutation } from "@/hooks/useApi";
 import toast from "react-hot-toast";
 import {
   Save,
@@ -19,15 +19,11 @@ import Input from "@/components/ui/Input";
 import { List } from "lucide-react";
 
 const SettingsPage = () => {
-  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("general");
 
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ["settings"],
-    queryFn: async () => {
-      const res = await getApi('system/settings');
-      return res.data;
-    },
+  const { data: settings, isLoading, refetch } = useApiQuery(["settings"], async () => {
+    const res = await getApi('system/settings');
+    return res.data;
   });
 
   const [localColors, setLocalColors] = useState([]);
@@ -46,11 +42,11 @@ const SettingsPage = () => {
     }
   }, [settings]);
 
-  const updateMutation = useMutation({
+  const updateMutation = useApiMutation({
     mutationFn: (data) => putApi('system/settings', data),
     onSuccess: () => {
       toast.success("Settings updated successfully!");
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      refetch();
     },
     onError: (err) => {
       toast.error(
@@ -227,9 +223,7 @@ const SettingsPage = () => {
                 type="button"
                 variant="secondary"
                 icon={RefreshCcw}
-                onClick={() =>
-                  queryClient.invalidateQueries({ queryKey: ["settings"] })
-                }
+                onClick={() => refetch()}
               >
                 Reset
               </Button>

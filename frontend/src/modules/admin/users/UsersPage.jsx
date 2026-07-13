@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useApiQuery, useApiMutation } from "@/hooks/useApi";
 import toast from "react-hot-toast";
 import { Plus, Edit2, Trash2, Search } from "lucide-react";
 import { getApi, postApi, putApi, deleteApi } from "@/services/api";
@@ -21,7 +21,6 @@ const CMS_ROLES = [
 ];
 
 const UsersPage = () => {
-  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const limit = 10;
@@ -31,30 +30,30 @@ const UsersPage = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   /* API returns { success, data: { data: [...], total: N } } */
-  const { data: res, isLoading } = useQuery({
-    queryKey: ["users", search, page],
-    queryFn: async () => {
+  const { data: res, isLoading, refetch } = useApiQuery(
+    ["users", search, page],
+    async () => {
       const response = await getApi("admin/users", { search, limit, offset: (page - 1) * limit });
       return response.data;
-    },
-  });
+    }
+  );
 
-  const deleteMutation = useMutation({
+  const deleteMutation = useApiMutation({
     mutationFn: (id) => deleteApi(`admin/users/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
+      refetch();
       setDeleteTarget(null);
     },
   });
 
-  const upsertMutation = useMutation({
+  const upsertMutation = useApiMutation({
     mutationFn: (formData) =>
       selectedUser
         ? putApi(`admin/users/${selectedUser.id}`, formData)
         : postApi("admin/users", formData),
     onSuccess: () => {
       toast.success(selectedUser ? "User updated!" : "User created!");
-      queryClient.invalidateQueries({ queryKey: ["users"] });
+      refetch();
       setModalOpen(false);
       setSelectedUser(null);
     },
