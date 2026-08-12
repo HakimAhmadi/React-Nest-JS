@@ -80,6 +80,18 @@ export class EnvironmentVariables {
   @Max(65535)
   DATABASE_PORT = 3306;
 
+  /*
+   * TypeORM defaults to 10 retries at 3s, so a bad password hangs the boot for
+   * ~30s before failing. Managed hosts that watchdog the first listen() report
+   * that as "the app never started" and bury the real "Access denied" error.
+   * Fail fast by default; raise it when the database starts alongside the app.
+   */
+  @Transform(({ value }) => Number(value ?? 3))
+  @IsInt()
+  @Min(0)
+  @Max(50)
+  DATABASE_RETRY_ATTEMPTS = 3;
+
   @IsString()
   @IsNotEmpty()
   DATABASE_USER: string;

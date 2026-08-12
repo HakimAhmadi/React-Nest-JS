@@ -26,6 +26,7 @@ export const dbEntities = Object.values(entities);
         database: config.get<string>('DATABASE_NAME'),
         entities: dbEntities,
         autoLoadEntities: false,
+        retryAttempts: config.get<number>('DATABASE_RETRY_ATTEMPTS') ?? 3,
       }),
     }),
     TypeOrmModule.forFeature(dbEntities),

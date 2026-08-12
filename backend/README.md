@@ -64,7 +64,8 @@ placeholder value fails startup rather than surfacing as a runtime mystery.
 | Variable                                                | Required | Notes                                                            |
 | ------------------------------------------------------- | -------- | ---------------------------------------------------------------- |
 | `JWT_SECRET`                                            | yes      | ≥ 32 chars; the example placeholder is rejected                  |
-| `DATABASE_HOST` / `_PORT` / `_USER` / `_PASS` / `_NAME` | yes      |                                                                  |
+| `DATABASE_HOST` / `_PORT` / `_USER` / `_PASS` / `_NAME` | yes      | prefer `127.0.0.1` over `localhost` — see Deploying              |
+| `DATABASE_RETRY_ATTEMPTS`                               | no       | default `3`                                                      |
 | `ALLOWED_ORIGINS`                                       | yes      | comma-separated; `*` is rejected (incompatible with credentials) |
 | `APP_URL`                                               | yes      | frontend origin, used to build reset links                       |
 | `JWT_ACCESS_EXPIRES_IN`                                 | no       | default `15m`                                                    |
@@ -107,6 +108,31 @@ either drop and recreate it, or mark the baseline as applied:
 INSERT INTO migrations (timestamp, name)
 VALUES (1755000000000, 'InitSchema1755000000000');
 ```
+
+## Deploying
+
+```bash
+npm install                    # .npmrc forces devDependencies; the build needs them
+npm run build
+npm run migration:run:prod     # apply the schema before the app boots
+npm prune --omit=dev --include=prod   # optional: drop the build toolchain
+node dist/main
+```
+
+**`Access denied for user 'x'@'::1'`** — the credentials are probably fine.
+Node 17+ resolves `localhost` to the IPv6 loopback `::1` first, and MySQL
+treats `::1` as a different host from `localhost`, so a grant issued to
+`'user'@'localhost'` does not match. Set `DATABASE_HOST=127.0.0.1`.
+
+**"App did not call listen() within N seconds"** on managed hosts — the server
+only starts listening after Nest finishes wiring every module, and that
+includes connecting to the database. It is almost always a downstream symptom:
+fix the connection error above it and listen() happens normally. `main.ts`
+calls `bootstrap()` unconditionally and has no `require.main === module` guard,
+so that particular platform warning does not apply here.
+
+Migrations do **not** run automatically at boot. Run `migration:run:prod`
+yourself, or the app starts against an empty schema and every query fails.
 
 ## Testing
 
