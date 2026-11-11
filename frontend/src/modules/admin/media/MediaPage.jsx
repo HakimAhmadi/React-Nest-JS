@@ -9,33 +9,41 @@ import {
   Upload,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useOutletContext } from "react-router-dom";
 import { getApi, postApi } from "@/services/api";
 import { assetUrl } from "@/utils/assetUrl";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { SAMPLE_MEDIA_ITEMS } from "../sampleAdminData";
 
 const MediaPage = () => {
+  const context = useOutletContext() || {};
+  const isGuestAdmin = context.isGuestAdmin ?? false;
+
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [copiedId, setCopiedId] = useState(null);
+  const [sampleMedia, setSampleMedia] = useState(SAMPLE_MEDIA_ITEMS);
   const fileInputRef = useRef(null);
   const debouncedSearch = useDebouncedValue(search, 250);
 
   const {
-    data: media = [],
-    isLoading,
+    data: realMedia = [],
+    isLoading: queryLoading,
     isError,
     error,
   } = useQuery({
     queryKey: ["media"],
     queryFn: () => getApi("upload"),
+    enabled: !isGuestAdmin,
   });
+
+  const media = isGuestAdmin ? sampleMedia : realMedia;
+  const isLoading = !isGuestAdmin && queryLoading;
 
   const uploadMutation = useMutation({
     mutationFn: (file) => {
       const formData = new FormData();
       formData.append("file", file);
-      // No explicit Content-Type: axios must set it so the multipart boundary
-      // is included. Setting it by hand made every upload fail to parse.
       return postApi("upload/image", formData);
     },
     onSuccess: () => {
@@ -47,11 +55,27 @@ const MediaPage = () => {
 
   const handleFileUpload = (event) => {
     const file = event.target.files?.[0];
-    if (file) uploadMutation.mutate(file);
+    if (!file) return;
+
+    if (isGuestAdmin) {
+      const newMedia = {
+        id: `media-${Date.now()}`,
+        filename: file.name,
+        url: URL.createObjectURL(file),
+        size: file.size,
+        mtime: new Date().toISOString(),
+        mime: file.type || "image/jpeg",
+      };
+      setSampleMedia((prev) => [newMedia, ...prev]);
+      toast.success("Guest Preview: Media uploaded locally");
+      event.target.value = "";
+      return;
+    }
+
+    uploadMutation.mutate(file);
     event.target.value = "";
   };
 
-  // Cleared on unmount / re-copy.
   useEffect(() => {
     if (!copiedId) return;
     const timer = setTimeout(() => setCopiedId(null), 2000);
@@ -69,7 +93,6 @@ const MediaPage = () => {
   };
 
   const filteredMedia = media
-    // Optional chaining: one entry without a filename used to crash the page.
     .filter((item) =>
       item?.filename?.toLowerCase().includes(debouncedSearch.toLowerCase()),
     )
@@ -83,20 +106,15 @@ const MediaPage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Media Library</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Manage your uploaded assets and images.
+            Manage your uploaded assets and images {isGuestAdmin && "• Interactive Demo Simulation"}
           </p>
         </div>
 
-        {/*
-          A real <button> that forwards to a hidden input. The previous markup
-          nested a <button> inside a <label>, which swallowed the click and
-          never opened the file picker.
-        */}
         <div>
           <input
             ref={fileInputRef}
@@ -108,10 +126,10 @@ const MediaPage = () => {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={uploadMutation.isPending}
+            disabled={!isGuestAdmin && uploadMutation.isPending}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-primary-600 hover:bg-primary-500 text-white shadow-lg shadow-primary-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            {uploadMutation.isPending ? (
+            {!isGuestAdmin && uploadMutation.isPending ? (
               <span
                 aria-hidden="true"
                 className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"
@@ -119,7 +137,7 @@ const MediaPage = () => {
             ) : (
               <Upload size={14} aria-hidden="true" />
             )}
-            {uploadMutation.isPending ? "Uploading…" : "Upload media"}
+            {!isGuestAdmin && uploadMutation.isPending ? "Uploading…" : "Upload media"}
           </button>
         </div>
       </div>
@@ -140,7 +158,7 @@ const MediaPage = () => {
         />
       </div>
 
-      {isError && (
+      {!isGuestAdmin && isError && (
         <p
           role="alert"
           className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"

@@ -302,9 +302,21 @@ export default function Home() {
               ) : (
                 <div className="space-y-4">
                   <p className="text-xs text-gray-400 leading-relaxed">
-                    You are currently unauthenticated. Sign in to access protected user features or the admin dashboard.
+                    You are unauthenticated. You can explore all user and admin modules below in interactive guest preview mode.
                   </p>
-                  <div className="flex flex-col gap-2 pt-2">
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <Link to="/account/profile">
+                      <Button variant="outline" size="sm" className="w-full text-[10px]" icon={User}>
+                        User Demo
+                      </Button>
+                    </Link>
+                    <Link to="/admin/dashboard">
+                      <Button variant="outline" size="sm" className="w-full text-[10px]" icon={Shield}>
+                        Admin Demo
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="flex flex-col gap-2 pt-1 border-t border-gray-800">
                     <Link to="/login">
                       <Button variant="primary" size="sm" className="w-full" icon={LogIn}>
                         Sign In / Login
@@ -386,7 +398,7 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* Column 2: User Logged In */}
+          {/* Column 2: User Portal (Guest Accessible with Sample Data) */}
           <div className="bg-gray-900/60 border border-gray-800 rounded-3xl p-7 flex flex-col">
             <div className="flex items-center justify-between pb-4 mb-6 border-b border-gray-800">
               <div className="flex items-center gap-3">
@@ -394,11 +406,11 @@ export default function Home() {
                   <User size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black uppercase tracking-tight text-white">User Logged In</h3>
-                  <span className="text-xs text-gray-400 font-medium">Requires login token</span>
+                  <h3 className="text-lg font-black uppercase tracking-tight text-white">User Portal</h3>
+                  <span className="text-xs text-gray-400 font-medium">Guest Preview + Logged In</span>
                 </div>
               </div>
-              <Badge variant="success">Protected</Badge>
+              <Badge variant="success">Sample Preview</Badge>
             </div>
 
             <ul className="space-y-3 flex-1">
@@ -406,12 +418,22 @@ export default function Home() {
                 {
                   title: "User Profile Settings",
                   path: "/account/profile",
-                  desc: "Update personal profile, avatar & info",
+                  desc: "Personal details, avatar upload & contact info",
+                },
+                {
+                  title: "Security & Authentication",
+                  path: "/account/security",
+                  desc: "Password update, 2FA toggle & active sessions",
+                },
+                {
+                  title: "User Preferences",
+                  path: "/account/preferences",
+                  desc: "Notification settings, email digests & themes",
                 },
                 {
                   title: "Account Area Root",
                   path: "/account",
-                  desc: "Protected account layout container",
+                  desc: "Account dashboard layout & navigation",
                 },
               ].map((item) => (
                 <li key={item.path}>
@@ -434,11 +456,11 @@ export default function Home() {
             </ul>
 
             <div className="mt-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
-              <span className="font-bold">Access condition:</span> Requires active user JWT. Unauthenticated requests automatically redirect to <code>/login</code> with previous location stored in state.
+              <span className="font-bold">Visible to All:</span> Guests explore with interactive sample data and local simulation; authenticated users persist changes directly to the backend database.
             </div>
           </div>
 
-          {/* Column 3: Admin Logged In */}
+          {/* Column 3: Admin Portal (Guest Accessible with Sample Data) */}
           <div className="bg-gray-900/60 border border-gray-800 rounded-3xl p-7 flex flex-col">
             <div className="flex items-center justify-between pb-4 mb-6 border-b border-gray-800">
               <div className="flex items-center gap-3">
@@ -446,11 +468,11 @@ export default function Home() {
                   <Shield size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black uppercase tracking-tight text-white">Admin Portal</h3>
-                  <span className="text-xs text-gray-400 font-medium">RBAC Admin & Super Admin</span>
+                  <h3 className="text-lg font-black uppercase tracking-tight text-white">Admin CMS Portal</h3>
+                  <span className="text-xs text-gray-400 font-medium">Guest Preview + Administrator</span>
                 </div>
               </div>
-              <Badge variant="info">Admin Only</Badge>
+              <Badge variant="info">Sample Preview</Badge>
             </div>
 
             <ul className="space-y-3 flex-1">
@@ -496,7 +518,7 @@ export default function Home() {
             </ul>
 
             <div className="mt-6 p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300">
-              <span className="font-bold">Access condition:</span> Protected by <code>adminOnly</code> check on server and client. Non-admin users are rejected with HTTP 403.
+              <span className="font-bold">Visible to All:</span> Guests explore with interactive sample records, simulated CRUD actions, and demo metrics; authenticated administrators interact with live database records.
             </div>
           </div>
         </div>

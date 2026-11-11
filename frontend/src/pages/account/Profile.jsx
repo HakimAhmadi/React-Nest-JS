@@ -3,10 +3,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
 import { Camera, Shield } from "lucide-react";
+import { useOutletContext } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { postApi, putApi } from "@/services/api";
 import { changePasswordSchema, profileSchema } from "@/utils/validation";
 import FormAlert from "@/components/ui/FormAlert";
+import { SAMPLE_GUEST_USER } from "./sampleData";
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -19,17 +21,15 @@ const FIELDS = [
   { name: "country", label: "Country" },
 ];
 
-const ProfileForm = ({ user, updateUser }) => {
+const ProfileForm = ({ user, updateUser, isGuest = false }) => {
   const fileInputRef = useRef(null);
 
   const [avatarError, setAvatarError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [profileError, setProfileError] = useState("");
+  const [previewAvatar, setPreviewAvatar] = useState(null);
 
-  // Derived, not mirrored into state: the store is already the source of truth
-  // for the avatar, and copying it into an effect meant every re-render of an
-  // identical `user` clobbered what was on screen.
-  const avatar = user?.avatar ?? "";
+  const avatar = previewAvatar || (user?.avatar ?? "");
 
   const {
     register,
@@ -37,8 +37,6 @@ const ProfileForm = ({ user, updateUser }) => {
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(profileSchema),
-    // The form is keyed on the user id below, so these defaults are applied
-    // fresh whenever the signed-in account changes.
     defaultValues: {
       name: user?.name ?? "",
       address: user?.address ?? "",
@@ -48,13 +46,6 @@ const ProfileForm = ({ user, updateUser }) => {
     },
   });
 
-  /**
-   * Uploads the file and stores the returned URL.
-   *
-   * The old version base64'd the image straight into `avatar`, a varchar(500)
-   * column — which failed for any real photo — and never enforced the size or
-   * type limits the UI advertised.
-   */
   const handleAvatarChange = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -67,6 +58,17 @@ const ProfileForm = ({ user, updateUser }) => {
     }
     if (file.size > MAX_AVATAR_BYTES) {
       setAvatarError("Image must be 5 MB or smaller.");
+      return;
+    }
+
+    if (isGuest) {
+      setUploading(true);
+      await new Promise((r) => setTimeout(r, 400));
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewAvatar(objectUrl);
+      setUploading(false);
+      toast.success("Guest Preview: Avatar updated locally!");
+      event.target.value = "";
       return;
     }
 
@@ -89,9 +91,14 @@ const ProfileForm = ({ user, updateUser }) => {
 
   const onSubmitProfile = async (values) => {
     setProfileError("");
+
+    if (isGuest) {
+      await new Promise((r) => setTimeout(r, 400));
+      toast.success("Guest Preview: Profile changes simulated successfully!");
+      return;
+    }
+
     try {
-      // `/users/me`, so the server derives the target from the token instead of
-      // trusting an id in the URL.
       const updated = await putApi("users/me", values);
       updateUser(updated);
       toast.success("Profile saved");
@@ -108,12 +115,17 @@ const ProfileForm = ({ user, updateUser }) => {
           <span className="text-[10px] font-black uppercase tracking-[0.3em]">
             Secure profile
           </span>
+          {isGuest && (
+            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-100 text-amber-800 border border-amber-200">
+              Interactive Preview
+            </span>
+          )}
         </div>
         <h1 className="text-2xl lg:text-4xl font-black text-black tracking-tight uppercase leading-none">
           Personal details
         </h1>
         <p className="text-gray-400 font-medium text-xs lg:text-sm max-w-lg">
-          Manage your identity and account security settings.
+          Manage your personal details, public profile, and identity information.
         </p>
       </section>
 
@@ -200,7 +212,6 @@ const ProfileForm = ({ user, updateUser }) => {
             >
               Email
             </label>
-            {/* Read-only: changing an address needs a verification flow. */}
             <input
               id="profile-email"
               value={user?.email ?? ""}
@@ -222,13 +233,12 @@ const ProfileForm = ({ user, updateUser }) => {
         </button>
       </form>
 
-      <PasswordSection />
+      <PasswordSection isGuest={isGuest} />
     </div>
   );
 };
 
-/** Password change, isolated so its state can't collide with the profile form. */
-const PasswordSection = () => {
+const PasswordSection = ({ isGuest = false }) => {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
 
@@ -241,9 +251,16 @@ const PasswordSection = () => {
 
   const onSubmit = async ({ currentPassword, newPassword }) => {
     setError("");
+
+    if (isGuest) {
+      await new Promise((r) => setTimeout(r, 400));
+      toast.success("Guest Preview: Password change simulated successfully!");
+      reset();
+      setOpen(false);
+      return;
+    }
+
     try {
-      // camelCase, matching the API. It used to send old_password/new_password,
-      // so the server received two undefined values.
       await putApi("auth/change-password", { currentPassword, newPassword });
       toast.success("Password changed. Other sessions were signed out.");
       reset();
@@ -327,14 +344,20 @@ const PasswordSection = () => {
   );
 };
 
-/**
- * Keyed on the account id so react-hook-form's defaultValues are re-applied
- * when the signed-in user changes, without an effect that fights the inputs.
- */
 const Profile = () => {
-  const { user, updateUser } = useAuth();
+  const context = useOutletContext() || {};
+  const { user, updateUser, isAuthenticated } = useAuth();
+
+  const isGuest = context.isGuest ?? !isAuthenticated;
+  const effectiveUser = isAuthenticated && user ? user : (context.user ?? SAMPLE_GUEST_USER);
+
   return (
-    <ProfileForm key={user?.id ?? "anonymous"} user={user} updateUser={updateUser} />
+    <ProfileForm
+      key={effectiveUser?.id ?? "sample-guest"}
+      user={effectiveUser}
+      updateUser={updateUser}
+      isGuest={isGuest}
+    />
   );
 };
 

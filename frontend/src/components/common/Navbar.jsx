@@ -1,21 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ChevronDown, User } from "lucide-react";
+import { ChevronDown, User, Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSettings } from "@/hooks/useSettings";
-import { useIsAdmin } from "@/utils/permissions";
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { settings } = useSettings();
-  const isAdmin = useIsAdmin();
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  const closeMenu = () => setMenuOpen(false);
 
-  // The menu was previously hover-only, so keyboard users could never open it.
+  const closeMenu = () => setMenuOpen(false);
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  // Click outside to close desktop dropdown
   useEffect(() => {
     if (!menuOpen) return;
 
@@ -39,7 +40,6 @@ export default function Navbar() {
     navigate("/login", { replace: true });
   };
 
-  // Guarded: a partially-populated user used to crash the whole shell here.
   const displayName = user?.name || user?.email?.split("@")[0] || "Account";
 
   return (
@@ -53,24 +53,25 @@ export default function Navbar() {
             {settings.appName || "App Template"}
           </Link>
 
+          {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8 uppercase text-[11px] font-bold tracking-widest">
             <Link to="/" className="text-black hover:text-gray-500 transition">
               Home
             </Link>
-            {isAuthenticated && (
-              <Link to="/account" className="text-black hover:text-gray-500 transition">
-                Account
-              </Link>
-            )}
-            {isAuthenticated && isAdmin && (
-              <Link to="/admin" className="text-black hover:text-gray-500 transition">
-                Administration
-              </Link>
-            )}
+            <Link to="/account" className="text-black hover:text-gray-500 transition">
+              Account
+            </Link>
+            <Link to="/admin" className="text-black hover:text-gray-500 transition flex items-center gap-1.5">
+              <span>Admin CMS</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-gray-100 text-gray-600 border border-gray-200">
+                Preview
+              </span>
+            </Link>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-5 text-black">
+        {/* Desktop User Status & Mobile Toggle */}
+        <div className="flex items-center justify-end gap-3 md:gap-5 text-black">
           {isAuthenticated ? (
             <div className="relative" ref={menuRef}>
               <button
@@ -104,16 +105,14 @@ export default function Navbar() {
                   >
                     Profile settings
                   </Link>
-                  {isAdmin && (
-                    <Link
-                      to="/admin"
-                      role="menuitem"
-                      onClick={closeMenu}
-                      className="block px-6 py-3 text-[10px] font-black uppercase tracking-widest text-black hover:bg-gray-50 transition"
-                    >
-                      Admin portal
-                    </Link>
-                  )}
+                  <Link
+                    to="/admin"
+                    role="menuitem"
+                    onClick={closeMenu}
+                    className="block px-6 py-3 text-[10px] font-black uppercase tracking-widest text-black hover:bg-gray-50 transition"
+                  >
+                    Admin portal
+                  </Link>
                   <button
                     type="button"
                     role="menuitem"
@@ -126,15 +125,102 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <Link
-              to="/login"
-              className="bg-black text-white px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 transition"
-            >
-              Sign in
-            </Link>
+            <div className="hidden sm:flex items-center gap-3">
+              <Link
+                to="/account"
+                className="text-gray-600 hover:text-black text-[10px] font-bold uppercase tracking-widest px-3 py-2 transition"
+              >
+                Explore
+              </Link>
+              <Link
+                to="/login"
+                className="bg-black text-white px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 transition"
+              >
+                Sign in
+              </Link>
+            </div>
           )}
+
+          {/* Mobile Menu Button */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            aria-label="Toggle navigation menu"
+            className="md:hidden p-2 rounded-lg text-black hover:bg-gray-100 transition-colors"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
       </nav>
+
+      {/* Mobile Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-gray-200 bg-white/98 px-6 py-6 space-y-4 animate-in slide-in-from-top-2 duration-200">
+          <div className="flex flex-col space-y-2 uppercase text-xs font-bold tracking-widest">
+            <Link
+              to="/"
+              onClick={closeMobileMenu}
+              className="py-2.5 px-3 rounded-lg text-black hover:bg-gray-100 transition"
+            >
+              Home
+            </Link>
+            <Link
+              to="/account"
+              onClick={closeMobileMenu}
+              className="py-2.5 px-3 rounded-lg text-black hover:bg-gray-100 transition flex items-center justify-between"
+            >
+              <span>User Account</span>
+              <span className="text-[9px] px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">
+                Preview
+              </span>
+            </Link>
+            <Link
+              to="/admin"
+              onClick={closeMobileMenu}
+              className="py-2.5 px-3 rounded-lg text-black hover:bg-gray-100 transition flex items-center justify-between"
+            >
+              <span>Admin CMS</span>
+              <span className="text-[9px] px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 font-bold">
+                Preview
+              </span>
+            </Link>
+          </div>
+
+          <div className="pt-4 border-t border-gray-200">
+            {isAuthenticated ? (
+              <div className="space-y-2">
+                <div className="text-xs text-gray-500 font-medium px-3">
+                  Signed in as <strong className="text-black">{displayName}</strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full text-left py-2.5 px-3 rounded-lg text-red-500 hover:bg-red-50 text-xs font-black uppercase tracking-widest transition"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 pt-2">
+                <Link
+                  to="/login"
+                  onClick={closeMobileMenu}
+                  className="w-full text-center bg-black text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition shadow-sm"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={closeMobileMenu}
+                  className="w-full text-center bg-gray-100 text-black py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition"
+                >
+                  Create Account
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
