@@ -47,7 +47,7 @@ function App() {
       <Suspense fallback={<FullPageSpinner />}>
         <Routes>
           <Route path="/" element={<MainLayout />}>
-            <Route index element={<HomeRedirect />} />
+            <Route index element={<Home />} />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
             <Route path="forgot-password" element={<ForgotPassword />} />
