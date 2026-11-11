@@ -50,18 +50,6 @@ if (!fs.existsSync(frontendEnvPath)) {
   }
 }
 
-// Sync root environment if docker-compose relies on it
-const rootDir = path.resolve(backendRoot, '..');
-const rootEnvPath = path.join(rootDir, '.env');
-if (!fs.existsSync(rootEnvPath)) {
-  const rootExample = path.join(rootDir, '.env.example');
-  if (fs.existsSync(rootExample)) {
-    let rootContent = fs.readFileSync(rootExample, 'utf8');
-    rootContent = rootContent.replace(/^JWT_SECRET=.*$/m, `JWT_SECRET=${values.get('JWT_SECRET')}`);
-    fs.writeFileSync(rootEnvPath, rootContent, { mode: 0o600 });
-  }
-}
-
 // Ensure uploads folder exists
 const uploadsDir = path.join(backendRoot, 'uploads');
 fs.mkdirSync(uploadsDir, { recursive: true });
