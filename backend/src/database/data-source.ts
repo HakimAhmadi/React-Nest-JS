@@ -1,36 +1,38 @@
 import 'reflect-metadata';
+import { loadEnvFile } from 'node:process';
+import { resolve } from 'node:path';
 import { DataSource } from 'typeorm';
-import { MysqlConnectionOptions } from 'typeorm/driver/mysql/MysqlConnectionOptions';
+import { databaseOptions } from './options';
+import { operatorLogger } from './operator-logger';
 
-/**
- * Single source of truth for the TypeORM connection, shared by the runtime
- * module and the migration CLI.
- *
- * This file must live inside `src/database/` so the `__dirname` globs below
- * resolve under both `ts-node` (`src/database/…`) and `node dist/main`
- * (`dist/database/…`).
- *
- * It deliberately does NOT load dotenv: doing so at import time would pull a
- * local `.env` into the running app even in production, defeating
- * `ConfigModule`'s `ignoreEnvFile`. The migration scripts preload
- * `dotenv/config` themselves instead.
- */
-// Annotated as the concrete MySQL options rather than the DataSourceOptions
-// union, so spreading it in `database.module.ts` stays type-safe.
-export const dataSourceOptions: MysqlConnectionOptions = {
-  type: 'mysql',
-  host: process.env.DATABASE_HOST,
-  port: Number(process.env.DATABASE_PORT ?? 3306),
-  username: process.env.DATABASE_USER,
-  password: process.env.DATABASE_PASS,
-  database: process.env.DATABASE_NAME,
-  entities: [__dirname + '/entities/*.entity{.ts,.js}'],
-  migrations: [__dirname + '/migrations/*{.ts,.js}'],
-  migrationsTableName: 'migrations',
-  // Hardcoded, never env-driven: schema changes go through migrations.
-  synchronize: false,
-  timezone: 'Z',
-  charset: 'utf8mb4',
-};
+export function loadBackendEnvironment() {
+  try {
+    loadEnvFile(resolve(__dirname, '../../.env'));
+  } catch (error: any) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+}
 
-export default new DataSource(dataSourceOptions);
+loadBackendEnvironment();
+
+export const appDatabaseOptions = databaseOptions();
+export const dataSourceOptions = appDatabaseOptions;
+
+export const AppDataSource = new DataSource({
+  ...appDatabaseOptions,
+  logger: operatorLogger,
+});
+
+export function requireLocalDevelopmentDatabase() {
+  const host = appDatabaseOptions.host || '';
+  if (
+    process.env.NODE_ENV === 'production' ||
+    !['localhost', '127.0.0.1', '::1'].includes(host)
+  ) {
+    throw new Error(
+      'Development setup/seed commands require a local, non-production database.',
+    );
+  }
+}
+
+export default AppDataSource;

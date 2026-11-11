@@ -1,5 +1,6 @@
 import { plainToInstance, Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsBooleanString,
   IsEnum,
   IsIn,
@@ -103,21 +104,10 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   DATABASE_NAME: string;
 
-  /**
-   * Retired. TypeORM `synchronize` is hardcoded off and schema changes go
-   * through migrations; failing loudly beats silently ignoring a variable
-   * someone still believes is doing something.
-   */
   @IsOptional()
-  @Transform(({ value }) => {
-    if (value !== undefined) {
-      throw new Error(
-        'DATABASE_SYNC has been removed. Schema changes go through migrations: npm run migration:run',
-      );
-    }
-    return value;
-  })
-  DATABASE_SYNC?: never;
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  DATABASE_SYNC = false;
 
   /* ── HTTP ─────────────────────────────────────────────────────────── */
 

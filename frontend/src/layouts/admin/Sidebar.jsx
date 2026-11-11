@@ -3,16 +3,12 @@ import {
   LayoutDashboard,
   Users,
   Settings,
-  ChevronLeft,
   Image as ImageIcon,
+  ChevronLeft,
 } from "lucide-react";
 import { useUIStore } from "@/store/uiStore";
 import { useAuthStore } from "@/store/authStore";
 
-/*
- * Each item declares the permission the backend enforces for that section, so
- * the nav can never offer a link that would 403 on arrival.
- */
 const NAV_ITEMS = [
   {
     path: "/admin/dashboard",
@@ -35,15 +31,18 @@ const NAV_ITEMS = [
   },
 ];
 
-const Sidebar = () => {
+const Sidebar = ({ isGuestAdmin = false }) => {
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const permissions = useAuthStore((s) => s.permissions);
 
-  // Filter nav items based on user's permissions
-  const visibleItems = NAV_ITEMS.filter(
-    (item) =>
-      item.permission === null || (permissions && permissions.includes(item.permission)),
-  );
+  // In guest admin preview mode, make all sections visible so guests can inspect all tools
+  const visibleItems = isGuestAdmin
+    ? NAV_ITEMS
+    : NAV_ITEMS.filter(
+        (item) =>
+          item.permission === null ||
+          (permissions && permissions.includes(item.permission)),
+      );
 
   return (
     <aside
@@ -55,12 +54,16 @@ const Sidebar = () => {
     >
       {/* Logo */}
       <div className="flex items-center justify-center h-16 px-4 border-b border-gray-800 flex-shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          {/* <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
-            <Zap size={16} className="text-white" />
-          </div> */}
+        <div className="flex flex-col items-center justify-center min-w-0">
           {sidebarOpen ? (
-            <span className="font-bold text-white tracking-wide truncate">Admin CMS</span>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-white tracking-wide truncate">Admin CMS</span>
+              {isGuestAdmin && (
+                <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  Demo
+                </span>
+              )}
+            </div>
           ) : (
             <span className="font-bold text-white tracking-wide truncate">AC</span>
           )}
@@ -99,17 +102,19 @@ const Sidebar = () => {
         ))}
       </nav>
 
-      {/* Collapse toggle button */}
-      <div className="p-3 border-t border-gray-800 flex-shrink-0">
+      {/* Collapse button */}
+      <div className="p-2 border-t border-gray-800 flex-shrink-0">
         <button
           onClick={toggleSidebar}
-          className="w-full flex items-center justify-center p-2 rounded-lg text-gray-500
-            hover:text-gray-100 hover:bg-gray-800 transition-all duration-150"
+          aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          className="w-full flex items-center justify-center gap-2 p-2 rounded-lg text-gray-400
+            hover:text-gray-100 hover:bg-gray-800 transition-colors text-sm"
         >
           <ChevronLeft
-            size={16}
-            className={`transition-transform duration-300 ${sidebarOpen ? "" : "rotate-180"}`}
+            size={18}
+            className={`transition-transform duration-300 ${!sidebarOpen ? "rotate-180" : ""}`}
           />
+          {sidebarOpen && <span className="text-xs">Collapse</span>}
         </button>
       </div>
     </aside>

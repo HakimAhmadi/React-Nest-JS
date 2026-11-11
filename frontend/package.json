@@ -13,7 +13,8 @@
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "check:contracts": "tsc -p tsconfig.contracts.json"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -45,6 +46,7 @@
     "jsdom": "^25.0.1",
     "prettier": "^3.4.2",
     "tailwindcss": "^4.2.2",
+    "typescript": "^5.9.3",
     "vite": "^8.0.1",
     "vitest": "^3.0.5"
   }

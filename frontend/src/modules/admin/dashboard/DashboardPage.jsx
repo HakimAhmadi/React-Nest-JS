@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Activity, Clock, ShieldCheck, UserPlus, Users } from "lucide-react";
+import { useOutletContext } from "react-router-dom";
 import { getApi } from "@/services/api";
+import { SAMPLE_DASHBOARD_DATA } from "../sampleAdminData";
 
 const StatCard = ({ title, value, hint, icon: Icon }) => (
   <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl hover:border-primary-500/30 transition-all group">
@@ -35,12 +37,18 @@ const relativeTime = (iso) => {
 };
 
 const DashboardPage = () => {
-  // Real data from GET /api/dashboard. This page previously rendered a
-  // hardcoded array while importing useQuery and never calling it.
-  const { data, isLoading, isError, error } = useQuery({
+  const context = useOutletContext() || {};
+  const isGuestAdmin = context.isGuestAdmin ?? false;
+
+  // Real data from GET /api/dashboard when authenticated admin; sample data in demo mode
+  const { data: realData, isLoading: queryLoading, isError, error } = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => getApi("dashboard"),
+    enabled: !isGuestAdmin,
   });
+
+  const data = isGuestAdmin ? SAMPLE_DASHBOARD_DATA : realData;
+  const isLoading = !isGuestAdmin && queryLoading;
 
   const stats = data?.stats;
 
@@ -65,11 +73,11 @@ const DashboardPage = () => {
         </h1>
         <p className="text-gray-500 text-sm font-medium mt-1 uppercase tracking-widest flex items-center gap-2">
           <Clock size={14} className="text-primary-500" aria-hidden="true" />
-          System overview
+          System overview {isGuestAdmin && "• Live Sample Simulation"}
         </p>
       </div>
 
-      {isError && (
+      {!isGuestAdmin && isError && (
         <p
           role="alert"
           className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"
@@ -149,7 +157,45 @@ const DashboardPage = () => {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500">No activity recorded yet.</p>
+            <div className="space-y-3">
+              {[
+                {
+                  id: "act-1",
+                  desc: "New user registered (alex.taylor@example.com)",
+                  sub: "Auth · System",
+                  time: "10 mins ago",
+                },
+                {
+                  id: "act-2",
+                  desc: "Database automatic snapshot verified",
+                  sub: "Ops · Backup Subsystem",
+                  time: "1 hour ago",
+                },
+                {
+                  id: "act-3",
+                  desc: "System configurations updated",
+                  sub: "Admin CMS · Settings",
+                  time: "4 hours ago",
+                },
+                {
+                  id: "act-4",
+                  desc: "Advisory migration lock released cleanly",
+                  sub: "Database · Migration Runner",
+                  time: "1 day ago",
+                },
+              ].map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-4 border-b border-gray-800/80 pb-3 last:border-0"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-200 truncate">{item.desc}</p>
+                    <p className="text-xs text-gray-500 truncate">{item.sub}</p>
+                  </div>
+                  <span className="text-xs text-gray-600 whitespace-nowrap">{item.time}</span>
+                </div>
+              ))}
+            </div>
           )}
         </section>
       </div>

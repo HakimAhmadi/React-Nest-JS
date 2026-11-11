@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { Bell, Globe, Info, RefreshCcw, Save, Shield } from "lucide-react";
+import { useOutletContext } from "react-router-dom";
 import { getApi, putApi } from "@/services/api";
 import { useSettings } from "@/hooks/useSettings";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import { SAMPLE_ADMIN_SETTINGS } from "../sampleAdminData";
 
 const TABS = [
   { id: "general", label: "General", icon: Globe },
@@ -14,25 +16,28 @@ const TABS = [
 ];
 
 const SettingsPage = () => {
+  const context = useOutletContext() || {};
+  const isGuestAdmin = context.isGuestAdmin ?? false;
+
   const queryClient = useQueryClient();
   const { fetchSettings } = useSettings();
   const [activeTab, setActiveTab] = useState("general");
+  const [sampleSettings, setSampleSettings] = useState(SAMPLE_ADMIN_SETTINGS);
 
-  // `system/settings/all` — the unauthenticated `system/settings` is filtered
-  // to a public allow-list and would not include the security keys below.
-  const { data: settings, isLoading } = useQuery({
+  const { data: realSettings, isLoading: queryLoading } = useQuery({
     queryKey: ["settings", "all"],
     queryFn: () => getApi("system/settings/all"),
+    enabled: !isGuestAdmin,
   });
 
+  const settings = isGuestAdmin ? sampleSettings : realSettings;
+  const isLoading = !isGuestAdmin && queryLoading;
+
   const updateMutation = useMutation({
-    // The endpoint takes { settings: { key: value } } and validates each key
-    // against a server-side allow-list.
     mutationFn: (values) => putApi("system/settings", { settings: values }),
     onSuccess: () => {
       toast.success("Settings saved");
       queryClient.invalidateQueries({ queryKey: ["settings"] });
-      // Refresh the public branding used by the shell (app name, logo).
       fetchSettings();
     },
     onError: (err) => toast.error(err.message || "Failed to save settings"),
@@ -45,10 +50,15 @@ const SettingsPage = () => {
     const values = Object.fromEntries(
       Array.from(form.entries()).map(([key, value]) => [key, String(value)]),
     );
-    // Unchecked checkboxes are absent from FormData; send them explicitly.
     values.mfaRequired = form.get("mfaRequired") === "on" ? "true" : "false";
     values.notif_user_registration =
       form.get("notif_user_registration") === "on" ? "true" : "false";
+
+    if (isGuestAdmin) {
+      setSampleSettings((prev) => ({ ...prev, ...values }));
+      toast.success("Guest Preview: System settings simulated successfully!");
+      return;
+    }
 
     updateMutation.mutate(values);
   };
@@ -63,11 +73,11 @@ const SettingsPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div>
         <h1 className="text-2xl font-bold text-white">System Settings</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Manage global configuration for your application.
+          Manage global configuration for your application {isGuestAdmin && "• Interactive Demo Simulation"}
         </p>
       </div>
 
@@ -92,10 +102,6 @@ const SettingsPage = () => {
         </nav>
 
         <div className="flex-1 card">
-          {/*
-            Rendered with `hidden` rather than unmounted, so switching tabs
-            doesn't discard edits made on another tab before saving.
-          */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div hidden={activeTab !== "general"} className="space-y-4">
               <Input
@@ -188,11 +194,22 @@ const SettingsPage = () => {
                 type="button"
                 variant="secondary"
                 icon={RefreshCcw}
-                onClick={() => queryClient.invalidateQueries({ queryKey: ["settings"] })}
+                onClick={() => {
+                  if (isGuestAdmin) {
+                    setSampleSettings(SAMPLE_ADMIN_SETTINGS);
+                    toast.success("Guest Preview: Reset to default sample settings");
+                  } else {
+                    queryClient.invalidateQueries({ queryKey: ["settings"] });
+                  }
+                }}
               >
                 Reset
               </Button>
-              <Button type="submit" icon={Save} loading={updateMutation.isPending}>
+              <Button
+                type="submit"
+                icon={Save}
+                loading={!isGuestAdmin && updateMutation.isPending}
+              >
                 Save changes
               </Button>
             </div>

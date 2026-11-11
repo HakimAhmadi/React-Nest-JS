@@ -1,29 +1,25 @@
-import { Bell, Menu, LogOut } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Bell, Menu, LogOut, LogIn, ArrowLeft } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUIStore } from "@/store/uiStore";
 
-const Topbar = () => {
-  // Goes through useAuth so signing out also revokes the refresh-token family
-  // server-side. Calling the store's local teardown alone left the session
-  // alive on the server — and, previously, in the other localStorage key too.
+const Topbar = ({ isGuestAdmin = false }) => {
   const { user, logout } = useAuth();
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
+    if (isGuestAdmin) {
+      navigate("/login", { replace: true });
+      return;
+    }
     await logout();
     navigate("/login", { replace: true });
   };
 
-  const avatarText = user?.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "AD";
+  const displayName = isGuestAdmin ? "Demo Admin" : user?.name ?? "Admin";
+  const displayEmail = isGuestAdmin ? "admin.demo@example.com" : user?.email ?? "";
+  const avatarText = isGuestAdmin ? "DA" : (user?.name?.slice(0, 2).toUpperCase() ?? "AD");
 
   return (
     <header
@@ -34,23 +30,34 @@ const Topbar = () => {
         ${sidebarOpen ? "left-60" : "left-16"}
       `}
     >
-      {/* Left: Sidebar toggle + Breadcrumb */}
+      {/* Left: Sidebar toggle + Breadcrumb + Exit link */}
       <div className="flex items-center gap-3">
         <button
           onClick={toggleSidebar}
           className="p-2 rounded-lg text-gray-400 hover:text-gray-100 hover:bg-gray-800 transition-colors"
           id="sidebar-toggle-btn"
+          aria-label="Toggle sidebar"
         >
           <Menu size={18} />
         </button>
         <div className="h-5 w-px bg-gray-700" />
-        <span className="text-sm text-gray-400">Management Console</span>
+        <span className="text-sm text-gray-400 font-medium">Management Console</span>
+        <Link
+          to="/"
+          className="hidden md:flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors ml-2"
+        >
+          <ArrowLeft size={12} />
+          <span>Exit to Site</span>
+        </Link>
       </div>
 
       {/* Right: Notifications + User Avatar */}
       <div className="flex items-center gap-2">
         {/* Notifications */}
-        <button className="p-2 rounded-lg text-gray-400 hover:text-gray-100 hover:bg-gray-800 transition-colors relative">
+        <button
+          className="p-2 rounded-lg text-gray-400 hover:text-gray-100 hover:bg-gray-800 transition-colors relative"
+          aria-label="Notifications"
+        >
           <Bell size={18} />
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary-500 rounded-full" />
         </button>
@@ -59,9 +66,9 @@ const Topbar = () => {
         <div className="flex items-center gap-3 ml-1">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-medium text-gray-200 leading-tight">
-              {user?.name ?? "Admin"}
+              {displayName}
             </p>
-            <p className="text-xs text-gray-500">{user?.email ?? ""}</p>
+            <p className="text-xs text-gray-500">{displayEmail}</p>
           </div>
 
           {/* Avatar */}
@@ -71,15 +78,25 @@ const Topbar = () => {
             </div>
           </div>
 
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            id="logout-btn"
-            className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-            title="Logout"
-          >
-            <LogOut size={16} />
-          </button>
+          {/* Logout / Login button */}
+          {isGuestAdmin ? (
+            <Link
+              to="/login?redirect=/admin"
+              className="p-2 rounded-lg text-gray-400 hover:text-primary-400 hover:bg-gray-800 transition-colors"
+              title="Sign in as Administrator"
+            >
+              <LogIn size={16} />
+            </Link>
+          ) : (
+            <button
+              onClick={handleLogout}
+              id="logout-btn"
+              className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              title="Logout"
+            >
+              <LogOut size={16} />
+            </button>
+          )}
         </div>
       </div>
     </header>

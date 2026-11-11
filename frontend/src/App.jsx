@@ -12,31 +12,18 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import SupportPage from "./pages/common/SupportPage";
 import NotFound from "./pages/common/NotFound";
 import Profile from "./pages/account/Profile";
+import Security from "./pages/account/Security";
+import Preferences from "./pages/account/Preferences";
 
-import ProtectedRoute from "./components/common/ProtectedRoute";
 import FullPageSpinner from "./components/common/FullPageSpinner";
 import { useAuthBootstrap } from "./hooks/useAuth";
-import { useAuthStore } from "./store/authStore";
-import { useIsAdmin } from "./utils/permissions";
 
-// The admin portal is only reachable by a minority of users; splitting it out
-// keeps it out of the initial bundle.
+// Lazy-loaded Admin CMS pages
 const AdminLayout = lazy(() => import("./layouts/admin/AdminLayout"));
 const DashboardPage = lazy(() => import("./modules/admin/dashboard/DashboardPage"));
 const UsersPage = lazy(() => import("./modules/admin/users/UsersPage"));
 const MediaPage = lazy(() => import("./modules/admin/media/MediaPage"));
 const SettingsPage = lazy(() => import("./modules/admin/settings/SettingsPage"));
-
-/** Admins landing on `/` go straight to the portal. */
-const HomeRedirect = () => {
-  const bootstrapping = useAuthStore((s) => s.bootstrapping);
-  const isAuthenticated = useAuthStore((s) => Boolean(s.accessToken));
-  const isAdmin = useIsAdmin();
-
-  if (bootstrapping) return <FullPageSpinner />;
-  if (isAuthenticated && isAdmin) return <Navigate to="/admin" replace />;
-  return <Home />;
-};
 
 function App() {
   // Exchanges the httpOnly refresh cookie for an access token on load.
@@ -47,7 +34,7 @@ function App() {
       <Suspense fallback={<FullPageSpinner />}>
         <Routes>
           <Route path="/" element={<MainLayout />}>
-            <Route index element={<HomeRedirect />} />
+            <Route index element={<Home />} />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
             <Route path="forgot-password" element={<ForgotPassword />} />
@@ -59,55 +46,22 @@ function App() {
             <Route path="terms" element={<SupportPage />} />
             <Route path="support" element={<SupportPage />} />
 
-            <Route
-              path="account"
-              element={
-                <ProtectedRoute>
-                  <AccountLayout />
-                </ProtectedRoute>
-              }
-            >
+            <Route path="account" element={<AccountLayout />}>
               <Route index element={<Navigate to="profile" replace />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="security" element={<Security />} />
+              <Route path="preferences" element={<Preferences />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
           </Route>
 
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute adminOnly>
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          >
+          <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
-            <Route
-              path="users"
-              element={
-                <ProtectedRoute adminOnly permission="user.view">
-                  <UsersPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="media"
-              element={
-                <ProtectedRoute adminOnly permission="upload.view">
-                  <MediaPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="settings"
-              element={
-                <ProtectedRoute adminOnly permission="settings.view">
-                  <SettingsPage />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="media" element={<MediaPage />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

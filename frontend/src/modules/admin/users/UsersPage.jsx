@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { Edit2, Plus, Search, Trash2 } from "lucide-react";
+import { useOutletContext } from "react-router-dom";
 import { deleteApi, getApi, postApi, putApi } from "@/services/api";
 import { useCanAccess } from "@/utils/permissions";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -11,6 +12,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import Table from "@/components/ui/Table";
+import { SAMPLE_ADMIN_USERS } from "../sampleAdminData";
 
 const CMS_ROLES = [
   { id: "SUPER_ADMIN", name: "Super Admin" },
@@ -23,28 +25,31 @@ const CMS_ROLES = [
 const PAGE_SIZE = 10;
 
 const UsersPage = () => {
+  const context = useOutletContext() || {};
+  const isGuestAdmin = context.isGuestAdmin ?? false;
+
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [sampleUsers, setSampleUsers] = useState(SAMPLE_ADMIN_USERS);
 
-  // One request per pause, not per keystroke.
   const debouncedSearch = useDebouncedValue(search, 300);
 
-  // Reset paging at the source of the change rather than in an effect that
-  // reacts to it afterwards. Without this, searching from page 3 keeps
-  // offset=20 and the results look empty.
   const handleSearchChange = (event) => {
     setSearch(event.target.value);
     setPage(1);
   };
 
-  const canEdit = useCanAccess("user.edit");
-  const canDelete = useCanAccess("user.delete");
-  const canCreate = useCanAccess("user.create");
+  const realCanEdit = useCanAccess("user.edit");
+  const realCanDelete = useCanAccess("user.delete");
+  const realCanCreate = useCanAccess("user.create");
 
-  // The response interceptor already unwraps the envelope, so this is the
-  // { data, total } payload directly.
-  const { data, isLoading, isError, error } = useQuery({
+  // In demo preview, enable all capabilities so visitors can test the UI controls
+  const canEdit = isGuestAdmin ? true : realCanEdit;
+  const canDelete = isGuestAdmin ? true : realCanDelete;
+  const canCreate = isGuestAdmin ? true : realCanCreate;
+
+  const { data: realData, isLoading: queryLoading, isError, error } = useQuery({
     queryKey: ["users", debouncedSearch, page],
     queryFn: () =>
       getApi("admin/users", {
@@ -53,10 +58,19 @@ const UsersPage = () => {
         offset: (page - 1) * PAGE_SIZE,
       }),
     placeholderData: (previous) => previous,
+    enabled: !isGuestAdmin,
   });
 
-  const users = data?.data ?? [];
-  const total = data?.total ?? 0;
+  // Simulated filtering and pagination for preview mode
+  const filteredSample = sampleUsers.filter((u) => {
+    const q = debouncedSearch.toLowerCase();
+    return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+  });
+  const samplePaged = filteredSample.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const users = isGuestAdmin ? samplePaged : realData?.data ?? [];
+  const total = isGuestAdmin ? filteredSample.length : realData?.total ?? 0;
+  const isLoading = !isGuestAdmin && queryLoading;
 
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteApi(`admin/users/${id}`),
@@ -65,8 +79,6 @@ const UsersPage = () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setDeleteTarget(null);
     },
-    // Now actually reachable: apiRequest throws instead of resolving with
-    // { success: false }, which used to make every failure look like a success.
     onError: (err) => toast.error(err.message || "Delete failed"),
   });
 
@@ -88,6 +100,19 @@ const UsersPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+
+    if (isGuestAdmin) {
+      setSampleUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+      toast.success("Guest Preview: User deleted locally");
+      setDeleteTarget(null);
+      return;
+    }
+
+    deleteMutation.mutate(deleteTarget.id);
+  };
+
   const columns = [
     {
       key: "id",
@@ -99,8 +124,12 @@ const UsersPage = () => {
       label: "User",
       render: (r) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-primary-600/20 flex items-center justify-center text-xs text-primary-400 font-bold">
-            {r.name?.[0]?.toUpperCase() || "?"}
+          <div className="w-8 h-8 rounded-full bg-primary-600/20 flex items-center justify-center text-xs text-primary-400 font-bold overflow-hidden">
+            {r.avatar ? (
+              <img src={r.avatar} alt="" className="w-full h-full object-cover" />
+            ) : (
+              r.name?.[0]?.toUpperCase() || "?"
+            )}
           </div>
           <div className="flex flex-col">
             <span className="font-medium text-gray-200">{r.name}</span>
@@ -112,14 +141,17 @@ const UsersPage = () => {
     {
       key: "role",
       label: "Role",
-      render: (r) => <Badge variant="info">{r.role || "SUBSCRIBER"}</Badge>,
+      render: (r) => {
+        const roleName = r.role || r.roles?.[0]?.name || r.roles?.[0]?.id || "SUBSCRIBER";
+        return <Badge variant="info">{roleName}</Badge>;
+      },
     },
     {
       key: "status",
       label: "Status",
       render: (r) => (
-        <Badge variant={r.isActive ? "success" : "danger"}>
-          {r.isActive ? "Active" : "Inactive"}
+        <Badge variant={r.isActive !== false ? "success" : "danger"}>
+          {r.isActive !== false ? "Active" : "Inactive"}
         </Badge>
       ),
     },
@@ -158,24 +190,65 @@ const UsersPage = () => {
     event.preventDefault();
     const form = Object.fromEntries(new FormData(event.target).entries());
 
+    if (isGuestAdmin) {
+      const roleObj = CMS_ROLES.find((r) => r.id === form.role) || {
+        id: form.role,
+        name: form.role,
+      };
+
+      if (selectedUser) {
+        setSampleUsers((prev) =>
+          prev.map((u) =>
+            u.id === selectedUser.id
+              ? {
+                  ...u,
+                  name: form.name,
+                  email: form.email,
+                  role: form.role,
+                  roles: [roleObj],
+                }
+              : u,
+          ),
+        );
+        toast.success("Guest Preview: User updated locally");
+      } else {
+        const newUser = {
+          id: Date.now(),
+          name: form.name,
+          email: form.email,
+          role: form.role,
+          roles: [roleObj],
+          createdAt: new Date().toISOString(),
+          avatar: null,
+          isActive: true,
+        };
+        setSampleUsers((prev) => [newUser, ...prev]);
+        toast.success("Guest Preview: User created locally");
+      }
+
+      setModalOpen(false);
+      setSelectedUser(null);
+      return;
+    }
+
     const payload = {
       name: form.name,
       email: form.email,
       role: form.role,
     };
-    // Only send a password when one was actually entered; the backend rejects
-    // an empty string.
     if (form.password) payload.password = form.password;
 
     upsertMutation.mutate(payload);
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-white">Users</h1>
-          <p className="text-gray-500 text-sm mt-1">{total} total accounts.</p>
+          <h1 className="text-2xl font-bold text-white">Users Management</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            {total} total accounts {isGuestAdmin && "• Interactive Demo Simulation"}
+          </p>
         </div>
         {canCreate && (
           <Button
@@ -208,7 +281,7 @@ const UsersPage = () => {
         </div>
       </div>
 
-      {isError && (
+      {!isGuestAdmin && isError && (
         <p
           role="alert"
           className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"
@@ -249,7 +322,7 @@ const UsersPage = () => {
             label={selectedUser ? "New password (leave blank to keep)" : "Password"}
             name="password"
             type="password"
-            required={!selectedUser}
+            required={!selectedUser && !isGuestAdmin}
             minLength={8}
             hint="At least 8 characters, with an uppercase letter, a lowercase letter and a digit."
           />
@@ -261,7 +334,9 @@ const UsersPage = () => {
             <select
               id="user-role"
               name="role"
-              defaultValue={selectedUser?.role || "SUBSCRIBER"}
+              defaultValue={
+                selectedUser?.role || selectedUser?.roles?.[0]?.id || "SUBSCRIBER"
+              }
               className="w-full rounded-lg border border-gray-700 bg-gray-800 text-gray-100 text-sm px-3 py-2"
             >
               {CMS_ROLES.map((role) => (
@@ -272,7 +347,7 @@ const UsersPage = () => {
             </select>
           </div>
 
-          {upsertMutation.isError && (
+          {!isGuestAdmin && upsertMutation.isError && (
             <p
               role="alert"
               className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"
@@ -293,7 +368,11 @@ const UsersPage = () => {
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" loading={upsertMutation.isPending}>
+            <Button
+              type="submit"
+              className="flex-1"
+              loading={!isGuestAdmin && upsertMutation.isPending}
+            >
               {selectedUser ? "Update" : "Create"}
             </Button>
           </div>
@@ -303,8 +382,8 @@ const UsersPage = () => {
       <ConfirmDialog
         isOpen={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={() => deleteMutation.mutate(deleteTarget?.id)}
-        loading={deleteMutation.isPending}
+        onConfirm={handleDelete}
+        loading={!isGuestAdmin && deleteMutation.isPending}
         title="Delete user"
         message={`Delete ${deleteTarget?.name}? Their sessions will be revoked immediately.`}
       />
