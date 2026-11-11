@@ -27,7 +27,10 @@ export const dbEntities = Object.values(entities);
         entities: dbEntities,
         autoLoadEntities: false,
         retryAttempts: config.get<number>('DATABASE_RETRY_ATTEMPTS') ?? 3,
-        synchronize: config.get<boolean>('DATABASE_SYNC') ?? false,
+        synchronize:
+          config.get<string>('NODE_ENV') !== 'production' &&
+          (config.get<boolean>('DATABASE_SYNC') === true ||
+            config.get<string>('DATABASE_SYNC') === 'true'),
       }),
     }),
     TypeOrmModule.forFeature(dbEntities),
