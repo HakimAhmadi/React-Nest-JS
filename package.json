@@ -1,0 +1,28 @@
+{
+  "name": "fullstack-boilerplate",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-Stack Boilerplate with NestJS, React, Expo, and operations tooling",
+  "scripts": {
+    "setup": "npm --prefix backend run setup",
+    "backend": "npm --prefix backend run start:dev",
+    "frontend": "npm --prefix frontend run dev",
+    "mobile": "npm --prefix mobile-app run start",
+    "seed": "npm --prefix backend run seed",
+    "db:check": "npm --prefix backend run db:check",
+    "db:plan": "npm --prefix backend run db:plan",
+    "db:verify": "npm --prefix backend run db:verify",
+    "db:release": "npm --prefix backend run db:release",
+    "backup:keygen": "npm --prefix backend run backup:keygen",
+    "backup:create": "npm --prefix backend run backup:create",
+    "backup:verify": "npm --prefix backend run backup:verify",
+    "backup:restore": "npm --prefix backend run backup:restore",
+    "backup:restore-check": "npm --prefix backend run backup:restore-check",
+    "migration:run": "npm --prefix backend run migration:run",
+    "ops:check": "npm --prefix backend run ops:check",
+    "ops:monitor": "npm --prefix backend run ops:monitor",
+    "security:scan": "node scripts/security-scan.cjs",
+    "test:proxy": "node scripts/proxy-smoke.cjs",
+    "check": "npm --prefix backend run build && npm --prefix backend run check:contracts && npm --prefix frontend run check:contracts && npm --prefix frontend run build"
+  }
+}

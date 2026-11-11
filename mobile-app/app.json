@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Boilerplate Mobile",
+    "slug": "boilerplate-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "boilerplate",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0a0a0a",
+    "ios": {
+      "bundleIdentifier": "com.boilerplate.app",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.boilerplate.app",
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

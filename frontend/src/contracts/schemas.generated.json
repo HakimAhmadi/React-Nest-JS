@@ -1,0 +1,187 @@
+{
+  "ApiErrorResponse": {
+    "type": "object",
+    "properties": {
+      "statusCode": {
+        "type": "integer"
+      },
+      "message": {
+        "type": "string"
+      },
+      "code": {
+        "type": "string"
+      },
+      "errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "requestId": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "statusCode",
+      "message",
+      "code"
+    ]
+  },
+  "UserSummaryResponse": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "email": {
+        "type": "string"
+      },
+      "firstName": {
+        "type": "string",
+        "nullable": true
+      },
+      "lastName": {
+        "type": "string",
+        "nullable": true
+      },
+      "roles": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "isActive": {
+        "type": "boolean"
+      },
+      "createdAt": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "updatedAt": {
+        "type": "string",
+        "format": "date-time"
+      }
+    },
+    "required": [
+      "id",
+      "email",
+      "roles",
+      "isActive",
+      "createdAt",
+      "updatedAt"
+    ]
+  },
+  "AuthResponse": {
+    "type": "object",
+    "properties": {
+      "user": {
+        "$ref": "#/components/schemas/UserSummaryResponse"
+      },
+      "roles": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "permissions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "accessToken": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "user",
+      "roles",
+      "permissions",
+      "accessToken"
+    ]
+  },
+  "AuditLogResponse": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "userId": {
+        "type": "integer",
+        "nullable": true
+      },
+      "action": {
+        "type": "string"
+      },
+      "entity": {
+        "type": "string"
+      },
+      "entityId": {
+        "type": "string",
+        "nullable": true
+      },
+      "details": {
+        "type": "object",
+        "additionalProperties": true,
+        "nullable": true
+      },
+      "createdAt": {
+        "type": "string",
+        "format": "date-time"
+      }
+    },
+    "required": [
+      "id",
+      "action",
+      "entity",
+      "createdAt"
+    ]
+  },
+  "SystemSettingResponse": {
+    "type": "object",
+    "properties": {
+      "key": {
+        "type": "string"
+      },
+      "value": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string",
+        "nullable": true
+      },
+      "updatedAt": {
+        "type": "string",
+        "format": "date-time"
+      }
+    },
+    "required": [
+      "key",
+      "value",
+      "updatedAt"
+    ]
+  },
+  "HealthResponse": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string"
+      },
+      "info": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "error": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "details": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "required": [
+      "status"
+    ]
+  }
+}
